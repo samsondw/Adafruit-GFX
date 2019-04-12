@@ -31,7 +31,6 @@
  * BSD license, all text here must be included in any redistribution.
  */
 
-#if !defined(__AVR_ATtiny85__) // Not for ATtiny, at all
 
 #include "Adafruit_SPITFT.h"
 
@@ -2066,5 +2065,3 @@ inline void Adafruit_SPITFT::TFT_RD_LOW(void) {
     digitalWrite(tft8._rd, LOW);
 #endif // end !USE_FAST_PINIO
 }
-
-#endif // end __AVR_ATtiny85__
