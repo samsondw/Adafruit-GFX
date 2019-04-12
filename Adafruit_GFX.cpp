@@ -1463,6 +1463,7 @@ void Adafruit_GFX::getTextBounds(const String &str, int16_t x, int16_t y,
     @param    h      The boundary height, set by function
 */
 /**************************************************************************/
+/*
 void Adafruit_GFX::getTextBounds(const __FlashStringHelper *str,
         int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h) {
     uint8_t *s = (uint8_t *)str, c;
@@ -1485,6 +1486,7 @@ void Adafruit_GFX::getTextBounds(const __FlashStringHelper *str,
         *h  = maxy - miny + 1;
     }
 }
+*/
 
 /**************************************************************************/
 /*!
