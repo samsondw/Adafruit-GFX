@@ -20,7 +20,6 @@
 #ifndef _ADAFRUIT_SPITFT_H_
 #define _ADAFRUIT_SPITFT_H_
 
-#if !defined(__AVR_ATtiny85__) // Not for ATtiny, at all
 
 #include <SPI.h>
 #include "Adafruit_GFX.h"
@@ -492,5 +491,5 @@ class Adafruit_SPITFT : public Adafruit_GFX {
     uint32_t      _freq = 0;       ///< Dummy var to keep subclasses happy
 };
 
-#endif // end __AVR_ATtiny85__
+
 #endif // end _ADAFRUIT_SPITFT_H_
