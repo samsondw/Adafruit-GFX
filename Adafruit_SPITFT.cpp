@@ -34,13 +34,6 @@
 
 #include "Adafruit_SPITFT.h"
 
-#if defined(PORT_IOBUS)
-// On SAMD21, redefine digitalPinToPort() to use the slightly-faster
-// PORT_IOBUS rather than PORT (not needed on SAMD51).
-#undef  digitalPinToPort
-#define digitalPinToPort(P) (&(PORT_IOBUS->Group[g_APinDescription[P].ulPort]))
-#endif // end PORT_IOBUS
-
 #if defined(USE_SPI_DMA)
  #include <Adafruit_ZeroDMA.h>
  #include "wiring_private.h"  // pinPeripheral() function
@@ -109,103 +102,11 @@
              this library's initSPI() function to initialize pins.
 */
 Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h,
-  int8_t cs, int8_t dc, int8_t mosi, int8_t sck, int8_t rst, int8_t miso) :
+  PinName cs, PinName dc, PinName mosi, PinName sck, PinName rst, PinName miso) :
   Adafruit_GFX(w, h), connection(TFT_SOFT_SPI), _rst(rst), _cs(cs), _dc(dc) {
     swspi._sck  = sck;
     swspi._mosi = mosi;
     swspi._miso = miso;
-#if defined(USE_FAST_PINIO)
- #if defined(HAS_PORT_SET_CLR)
-  #if defined(CORE_TEENSY)
-   #if !defined(KINETISK)
-    dcPinMask          = digitalPinToBitMask(dc);
-   #endif
-    dcPortSet          = portSetRegister(dc);
-    dcPortClr          = portClearRegister(dc);
-    swspi.sckPortSet   = portSetRegister(sck);
-    swspi.sckPortClr   = portClearRegister(sck);
-    swspi.mosiPortSet  = portSetRegister(mosi);
-    swspi.mosiPortClr  = portClearRegister(mosi);
-    if(cs >= 0) {
-   #if !defined(KINETISK)
-        csPinMask      = digitalPinToBitMask(cs);
-   #endif
-        csPortSet      = portSetRegister(cs);
-        csPortClr      = portClearRegister(cs);
-    } else {
-   #if !defined(KINETISK)
-        csPinMask      = 0;
-   #endif
-        csPortSet      = dcPortSet;
-        csPortClr      = dcPortClr;
-    }
-    if(miso >= 0) {
-        swspi.misoPort = portInputRegister(miso);
-    } else {
-        swspi.misoPort = portInputRegister(dc);
-    }
-  #else  // !CORE_TEENSY
-    dcPinMask        =digitalPinToBitMask(dc);
-    swspi.sckPinMask =digitalPinToBitMask(sck);
-    swspi.mosiPinMask=digitalPinToBitMask(mosi);
-    dcPortSet        =&(PORT->Group[g_APinDescription[dc].ulPort].OUTSET.reg);
-    dcPortClr        =&(PORT->Group[g_APinDescription[dc].ulPort].OUTCLR.reg);
-    swspi.sckPortSet =&(PORT->Group[g_APinDescription[sck].ulPort].OUTSET.reg);
-    swspi.sckPortClr =&(PORT->Group[g_APinDescription[sck].ulPort].OUTCLR.reg);
-    swspi.mosiPortSet=&(PORT->Group[g_APinDescription[mosi].ulPort].OUTSET.reg);
-    swspi.mosiPortClr=&(PORT->Group[g_APinDescription[mosi].ulPort].OUTCLR.reg);
-    if(cs >= 0) {
-        csPinMask = digitalPinToBitMask(cs);
-        csPortSet = &(PORT->Group[g_APinDescription[cs].ulPort].OUTSET.reg);
-        csPortClr = &(PORT->Group[g_APinDescription[cs].ulPort].OUTCLR.reg);
-    } else {
-        // No chip-select line defined; might be permanently tied to GND.
-        // Assign a valid GPIO register (though not used for CS), and an
-        // empty pin bitmask...the nonsense bit-twiddling might be faster
-        // than checking _cs and possibly branching.
-        csPortSet = dcPortSet;
-        csPortClr = dcPortClr;
-        csPinMask = 0;
-    }
-    if(miso >= 0) {
-        swspi.misoPinMask=digitalPinToBitMask(miso);
-        swspi.misoPort   =(PORTreg_t)portInputRegister(digitalPinToPort(miso));
-    } else {
-        swspi.misoPinMask=0;
-        swspi.misoPort   =(PORTreg_t)portInputRegister(digitalPinToPort(dc));
-    }
-  #endif // end !CORE_TEENSY
- #else  // !HAS_PORT_SET_CLR
-    dcPort              =(PORTreg_t)portOutputRegister(digitalPinToPort(dc));
-    dcPinMaskSet        =digitalPinToBitMask(dc);
-    swspi.sckPort       =(PORTreg_t)portOutputRegister(digitalPinToPort(sck));
-    swspi.sckPinMaskSet =digitalPinToBitMask(sck);
-    swspi.mosiPort      =(PORTreg_t)portOutputRegister(digitalPinToPort(mosi));
-    swspi.mosiPinMaskSet=digitalPinToBitMask(mosi);
-    if(cs >= 0) {
-        csPort       = (PORTreg_t)portOutputRegister(digitalPinToPort(cs));
-        csPinMaskSet = digitalPinToBitMask(cs);
-    } else {
-        // No chip-select line defined; might be permanently tied to GND.
-        // Assign a valid GPIO register (though not used for CS), and an
-        // empty pin bitmask...the nonsense bit-twiddling might be faster
-        // than checking _cs and possibly branching.
-        csPort       = dcPort;
-        csPinMaskSet = 0;
-    }
-    if(miso >= 0) {
-        swspi.misoPort   =(PORTreg_t)portInputRegister(digitalPinToPort(miso));
-        swspi.misoPinMask=digitalPinToBitMask(miso);
-    } else {
-        swspi.misoPort   =(PORTreg_t)portInputRegister(digitalPinToPort(dc));
-        swspi.misoPinMask=0;
-    }
-    csPinMaskClr         = ~csPinMaskSet;
-    dcPinMaskClr         = ~dcPinMaskSet;
-    swspi.sckPinMaskClr  = ~swspi.sckPinMaskSet;
-    swspi.mosiPinMaskClr = ~swspi.mosiPinMaskSet;
- #endif // !end HAS_PORT_SET_CLR
-#endif // end USE_FAST_PINIO
 }
 
 /*!
@@ -222,33 +123,18 @@ Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h,
              need to call subclass' begin() function, which in turn calls
              this library's initSPI() function to initialize pins.
 */
-#if defined(ESP8266) // See notes below
-Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h, int8_t cs,
-  int8_t dc, int8_t rst) : Adafruit_GFX(w, h),
+Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h, PinName cs,
+  PinName dc, PinName rst) : Adafruit_GFX(w, h),
   connection(TFT_HARD_SPI), _rst(rst), _cs(cs), _dc(dc) {
-    hwspi._spi = &SPI;
+    hwspi._spi = new SPI(SPI_MOSI, SPI_MISO, SPI_SCK, SPI_CS);
 }
-#else  // !ESP8266
-Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h, int8_t cs,
-  int8_t dc, int8_t rst) : Adafruit_SPITFT(w, h, &SPI, cs, dc, rst) {
-    // This just invokes the hardware SPI constructor below,
-    // passing the default SPI device (&SPI).
-}
-#endif // end !ESP8266
 
-#if !defined(ESP8266)
-// ESP8266 compiler freaks out at this constructor -- it can't disambiguate
-// beteween the SPIClass pointer (argument #3) and a regular integer.
-// Solution here it to just not offer this variant on the ESP8266. You can
-// use the default hardware SPI peripheral, or you can use software SPI,
-// but if there's any library out there that creates a 'virtual' SPIClass
-// peripheral and drives it with software bitbanging, that's not supported.
 /*!
     @brief   Adafruit_SPITFT constructor for hardware SPI using a specific
              SPI peripheral.
     @param   w         Display width in pixels at default rotation (0).
     @param   h         Display height in pixels at default rotation (0).
-    @param   spiClass  Pointer to SPIClass type (e.g. &SPI or &SPI1).
+    @param   spi       Pointer to SPI type.
     @param   cs        Arduino pin # for chip-select (-1 if unused, tie CS low).
     @param   dc        Arduino pin # for data/command select (required).
     @param   rst       Arduino pin # for display reset (optional, display reset
@@ -258,69 +144,11 @@ Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h, int8_t cs,
              need to call subclass' begin() function, which in turn calls
              this library's initSPI() function to initialize pins.
 */
-Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h, SPIClass *spiClass,
-  int8_t cs, int8_t dc, int8_t rst) : Adafruit_GFX(w, h),
+Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h, SPI *spi,
+  PinName cs, PinName dc, PinName rst) : Adafruit_GFX(w, h),
   connection(TFT_HARD_SPI), _rst(rst), _cs(cs), _dc(dc) {
-    hwspi._spi = spiClass;
-#if defined(USE_FAST_PINIO)
- #if defined(HAS_PORT_SET_CLR)
-  #if defined(CORE_TEENSY)
-   #if !defined(KINETISK)
-    dcPinMask     = digitalPinToBitMask(dc);
-   #endif
-    dcPortSet     = portSetRegister(dc);
-    dcPortClr     = portClearRegister(dc);
-    if(cs >= 0) {
-   #if !defined(KINETISK)
-        csPinMask = digitalPinToBitMask(cs);
-   #endif
-        csPortSet = portSetRegister(cs);
-        csPortClr = portClearRegister(cs);
-    } else { // see comments below
-   #if !defined(KINETISK)
-        csPinMask = 0;
-   #endif
-        csPortSet = dcPortSet;
-        csPortClr = dcPortClr;
-    }
-  #else  // !CORE_TEENSY
-    dcPinMask     = digitalPinToBitMask(dc);
-    dcPortSet     = &(PORT->Group[g_APinDescription[dc].ulPort].OUTSET.reg);
-    dcPortClr     = &(PORT->Group[g_APinDescription[dc].ulPort].OUTCLR.reg);
-    if(cs >= 0) {
-        csPinMask = digitalPinToBitMask(cs);
-        csPortSet = &(PORT->Group[g_APinDescription[cs].ulPort].OUTSET.reg);
-        csPortClr = &(PORT->Group[g_APinDescription[cs].ulPort].OUTCLR.reg);
-    } else {
-        // No chip-select line defined; might be permanently tied to GND.
-        // Assign a valid GPIO register (though not used for CS), and an
-        // empty pin bitmask...the nonsense bit-twiddling might be faster
-        // than checking _cs and possibly branching.
-        csPortSet = dcPortSet;
-        csPortClr = dcPortClr;
-        csPinMask = 0;
-    }
-  #endif // end !CORE_TEENSY
- #else  // !HAS_PORT_SET_CLR
-    dcPort           = (PORTreg_t)portOutputRegister(digitalPinToPort(dc));
-    dcPinMaskSet     = digitalPinToBitMask(dc);
-    if(cs >= 0) {
-        csPort       = (PORTreg_t)portOutputRegister(digitalPinToPort(cs));
-        csPinMaskSet = digitalPinToBitMask(cs);
-    } else {
-        // No chip-select line defined; might be permanently tied to GND.
-        // Assign a valid GPIO register (though not used for CS), and an
-        // empty pin bitmask...the nonsense bit-twiddling might be faster
-        // than checking _cs and possibly branching.
-        csPort       = dcPort;
-        csPinMaskSet = 0;
-    }
-    csPinMaskClr = ~csPinMaskSet;
-    dcPinMaskClr = ~dcPinMaskSet;
- #endif // end !HAS_PORT_SET_CLR
-#endif // end USE_FAST_PINIO
+    hwspi._spi = spi;
 }
-#endif // end !ESP8266
 
 /*!
     @brief   Adafruit_SPITFT constructor for parallel display connection.
@@ -355,127 +183,12 @@ Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h, SPIClass *spiClass,
              wanting to break existing code).
 */
 Adafruit_SPITFT::Adafruit_SPITFT(uint16_t w, uint16_t h, tftBusWidth busWidth,
-  int8_t d0, int8_t wr, int8_t dc, int8_t cs, int8_t rst, int8_t rd) :
+  PinName d0, PinName wr, PinName dc, PinName cs, PinName rst, PinName rd) :
   Adafruit_GFX(w, h), connection(TFT_PARALLEL), _rst(rst), _cs(cs), _dc(dc) {
     tft8._d0  = d0;
     tft8._wr  = wr;
     tft8._rd  = rd;
     tft8.wide = (busWidth == tft16);
-#if defined(USE_FAST_PINIO)
- #if defined(HAS_PORT_SET_CLR)
-  #if defined(CORE_TEENSY)
-    tft8.wrPortSet = portSetRegister(wr);
-    tft8.wrPortClr = portClearRegister(wr);
-   #if !defined(KINETISK)
-    dcPinMask      = digitalPinToBitMask(dc);
-   #endif
-    dcPortSet      = portSetRegister(dc);
-    dcPortClr      = portClearRegister(dc);
-    if(cs >= 0) {
-   #if !defined(KINETISK)
-        csPinMask  = digitalPinToBitMask(cs);
-   #endif
-        csPortSet  = portSetRegister(cs);
-        csPortClr  = portClearRegister(cs);
-    } else { // see comments below
-   #if !defined(KINETISK)
-        csPinMask  = 0;
-   #endif
-        csPortSet  = dcPortSet;
-        csPortClr  = dcPortClr;
-    }
-    if(rd >= 0) { // if read-strobe pin specified...
-   #if defined(KINETISK)
-        tft8.rdPinMask = 1;
-   #else  // !KINETISK
-        tft8.rdPinMask = digitalPinToBitMask(rd);
-   #endif
-        tft8.rdPortSet = portSetRegister(rd);
-        tft8.rdPortClr = portClearRegister(rd);
-    } else {
-        tft8.rdPinMask = 0;
-        tft8.rdPortSet = dcPortSet;
-        tft8.rdPortClr = dcPortClr;
-    }
-    // These are all uint8_t* pointers -- elsewhere they're recast
-    // as necessary if a 'wide' 16-bit interface is in use.
-    tft8.writePort = portOutputRegister(d0);
-    tft8.readPort  = portInputRegister(d0);
-    tft8.dirSet    = portModeRegister(d0);
-    tft8.dirClr    = portModeRegister(d0);
-  #else  // !CORE_TEENSY
-    tft8.wrPinMask = digitalPinToBitMask(wr);
-    tft8.wrPortSet = &(PORT->Group[g_APinDescription[wr].ulPort].OUTSET.reg);
-    tft8.wrPortClr = &(PORT->Group[g_APinDescription[wr].ulPort].OUTCLR.reg);
-    dcPinMask      = digitalPinToBitMask(dc);
-    dcPortSet      = &(PORT->Group[g_APinDescription[dc].ulPort].OUTSET.reg);
-    dcPortClr      = &(PORT->Group[g_APinDescription[dc].ulPort].OUTCLR.reg);
-    if(cs >= 0) {
-        csPinMask  = digitalPinToBitMask(cs);
-        csPortSet  = &(PORT->Group[g_APinDescription[cs].ulPort].OUTSET.reg);
-        csPortClr  = &(PORT->Group[g_APinDescription[cs].ulPort].OUTCLR.reg);
-    } else {
-        // No chip-select line defined; might be permanently tied to GND.
-        // Assign a valid GPIO register (though not used for CS), and an
-        // empty pin bitmask...the nonsense bit-twiddling might be faster
-        // than checking _cs and possibly branching.
-        csPortSet  = dcPortSet;
-        csPortClr  = dcPortClr;
-        csPinMask  = 0;
-    }
-    if(rd >= 0) { // if read-strobe pin specified...
-        tft8.rdPinMask =digitalPinToBitMask(rd);
-        tft8.rdPortSet =&(PORT->Group[g_APinDescription[rd].ulPort].OUTSET.reg);
-        tft8.rdPortClr =&(PORT->Group[g_APinDescription[rd].ulPort].OUTCLR.reg);
-    } else {
-        tft8.rdPinMask = 0;
-        tft8.rdPortSet = dcPortSet;
-        tft8.rdPortClr = dcPortClr;
-    }
-    // Get pointers to PORT write/read/dir bytes within 32-bit PORT
-    uint8_t       dBit    = g_APinDescription[d0].ulPin; // d0 bit # in PORT
-    PortGroup    *p       = (&(PORT->Group[g_APinDescription[d0].ulPort]));
-    uint8_t       offset  = dBit / 8; // d[7:0] byte # within PORT
-    if(tft8.wide) offset &= ~1; // d[15:8] byte # within PORT
-    // These are all uint8_t* pointers -- elsewhere they're recast
-    // as necessary if a 'wide' 16-bit interface is in use.
-    tft8.writePort    = (volatile uint8_t *)&(p->OUT.reg)    + offset;
-    tft8.readPort     = (volatile uint8_t *)&(p->IN.reg)     + offset;
-    tft8.dirSet       = (volatile uint8_t *)&(p->DIRSET.reg) + offset;
-    tft8.dirClr       = (volatile uint8_t *)&(p->DIRCLR.reg) + offset;
-  #endif // end !CORE_TEENSY
- #else  // !HAS_PORT_SET_CLR
-    tft8.wrPort       = (PORTreg_t)portOutputRegister(digitalPinToPort(wr));
-    tft8.wrPinMaskSet = digitalPinToBitMask(wr);
-    dcPort            = (PORTreg_t)portOutputRegister(digitalPinToPort(dc));
-    dcPinMaskSet      = digitalPinToBitMask(dc);
-    if(cs >= 0) {
-        csPort        = (PORTreg_t)portOutputRegister(digitalPinToPort(cs));
-        csPinMaskSet  = digitalPinToBitMask(cs);
-    } else {
-        // No chip-select line defined; might be permanently tied to GND.
-        // Assign a valid GPIO register (though not used for CS), and an
-        // empty pin bitmask...the nonsense bit-twiddling might be faster
-        // than checking _cs and possibly branching.
-        csPort        = dcPort;
-        csPinMaskSet  = 0;
-    }
-    if(rd >= 0) { // if read-strobe pin specified...
-        tft8.rdPort       =(PORTreg_t)portOutputRegister(digitalPinToPort(rd));
-        tft8.rdPinMaskSet =digitalPinToBitMask(rd);
-    } else {
-        tft8.rdPort       = dcPort;
-        tft8.rdPinMaskSet = 0;
-    }
-    csPinMaskClr      = ~csPinMaskSet;
-    dcPinMaskClr      = ~dcPinMaskSet;
-    tft8.wrPinMaskClr = ~tft8.wrPinMaskSet;
-    tft8.rdPinMaskClr = ~tft8.rdPinMaskSet;
-    tft8.writePort    = (PORTreg_t)portOutputRegister(digitalPinToPort(d0));
-    tft8.readPort     = (PORTreg_t)portInputRegister(digitalPinToPort(d0));
-    tft8.portDir      = (PORTreg_t)portModeRegister(digitalPinToPort(d0));
- #endif // end !HAS_PORT_SET_CLR
-#endif // end USE_FAST_PINIO
 }
 
 // end constructors -------
@@ -515,8 +228,10 @@ void Adafruit_SPITFT::initSPI(uint32_t freq) {
         hwspi.settings = SPISettings(freq, MSBFIRST, SPI_MODE0);
 #else
         hwspi._freq    = freq; // Save freq value for later
+        hwspi._spi->format(hwspi._bits, hwspi._mode);
+        hwspi._spi->frequency(freq);
 #endif
-        hwspi._spi->begin();
+        //hwspi._spi->begin();
 
     } else if(connection == TFT_SOFT_SPI) {
 
@@ -578,11 +293,11 @@ void Adafruit_SPITFT::initSPI(uint32_t freq) {
         // Toggle _rst low to reset
         pinMode(_rst, OUTPUT);
         digitalWrite(_rst, HIGH);
-        delay(100);
+        wait_ms(100);
         digitalWrite(_rst, LOW);
-        delay(100);
+        wait_ms(100);
         digitalWrite(_rst, HIGH);
-        delay(200);
+        wait_ms(200);
     }
 
 #if defined(USE_SPI_DMA)
@@ -974,7 +689,7 @@ void Adafruit_SPITFT::writePixels(uint16_t *colors, uint32_t len,
  #if defined(__SAMD51__)
             if(connection == TFT_HARD_SPI) {
                 // See SAMD51 note in writeColor()
-                hwspi._spi->setDataMode(SPI_MODE0);
+                hwspi._spi->mode(hwspi._bits, hwspi._mode);
             } else {
                 pinPeripheral(tft8._wr, PIO_OUTPUT); // Switch WR back to GPIO
             }
@@ -1003,7 +718,7 @@ void Adafruit_SPITFT::dmaWait(void) {
  #if defined(__SAMD51__)
     if(connection == TFT_HARD_SPI) {
         // See SAMD51 note in writeColor()
-        hwspi._spi->setDataMode(SPI_MODE0);
+        hwspi._spi->mode(hwspi._bits, hwspi._mode);
     } else {
         pinPeripheral(tft8._wr, PIO_OUTPUT); // Switch WR back to GPIO
     }
@@ -1127,7 +842,7 @@ void Adafruit_SPITFT::writeColor(uint16_t color, uint32_t len) {
         if(connection == TFT_HARD_SPI) {
             // SAMD51: SPI DMA seems to leave the SPI peripheral in a freaky
             // state on completion. Workaround is to explicitly set it back...
-            hwspi._spi->setDataMode(SPI_MODE0);
+            hwspi._spi->mode(hwspi._bits, hwspi._mode);
         } else {
             pinPeripheral(tft8._wr, PIO_OUTPUT); // Switch WR back to GPIO
         }
@@ -1156,12 +871,9 @@ void Adafruit_SPITFT::writeColor(uint16_t color, uint32_t len) {
  #if defined(__AVR__)
             for(SPDR = hi; !(SPSR & _BV(SPIF)); );
             for(SPDR = lo; !(SPSR & _BV(SPIF)); );
- #elif defined(ESP32)
+ #else
             hwspi._spi->write(hi);
             hwspi._spi->write(lo);
- #else
-            hwspi._spi->transfer(hi);
-            hwspi._spi->transfer(lo);
  #endif
         }
 #endif // end !ESP8266
@@ -1651,17 +1363,8 @@ inline void Adafruit_SPITFT::SPI_BEGIN_TRANSACTION(void) {
 #if defined(SPI_HAS_TRANSACTION)
         hwspi._spi->beginTransaction(hwspi.settings);
 #else // No transactions, configure SPI manually...
- #if defined(__AVR__) || defined(TEENSYDUINO) || defined(ARDUINO_ARCH_STM32F1)
-        hwspi._spi->setClockDivider(SPI_CLOCK_DIV2);
- #elif defined(__arm__)
-        hwspi._spi->setClockDivider(11);
- #elif defined(ESP8266) || defined(ESP32)
-        hwspi._spi->setFrequency(hwspi._freq);
- #elif defined(RASPI) || defined(ARDUINO_ARCH_STM32F1)
-        hwspi._spi->setClock(hwspi._freq);
- #endif
-        hwspi._spi->setBitOrder(MSBFIRST);
-        hwspi._spi->setDataMode(SPI_MODE0);
+        hwspi._spi->format(hwspi._bits, hwspi._mode);
+        hwspi._spi->frequency(hwspi._freq);
 #endif // end !SPI_HAS_TRANSACTION
     }
 }
@@ -1695,10 +1398,8 @@ void Adafruit_SPITFT::spiWrite(uint8_t b) {
     if(connection == TFT_HARD_SPI) {
 #if defined(__AVR__)
         for(SPDR = b; !(SPSR & _BV(SPIF)); );
-#elif defined(ESP8266) || defined(ESP32)
-        hwspi._spi->write(b);
 #else
-        hwspi._spi->transfer(b);
+        hwspi._spi->write(b);
 #endif
     } else if(connection == TFT_SOFT_SPI) {
         for(uint8_t bit=0; bit<8; bit++) {
@@ -1747,7 +1448,7 @@ uint8_t Adafruit_SPITFT::spiRead(void) {
     uint8_t  b = 0;
     uint16_t w = 0;
     if(connection == TFT_HARD_SPI) {
-        return hwspi._spi->transfer((uint8_t)0);
+        return hwspi._spi->write((uint8_t)0);
     } else if(connection == TFT_SOFT_SPI) {
         if(swspi._miso >= 0) {
             for(uint8_t i=0; i<8; i++) {
@@ -1920,8 +1621,8 @@ void Adafruit_SPITFT::SPI_WRITE16(uint16_t w) {
 #elif defined(ESP8266) || defined(ESP32)
         hwspi._spi->write16(w);
 #else
-        hwspi._spi->transfer(w >> 8);
-        hwspi._spi->transfer(w);
+        hwspi._spi->write((uint8_t)(w >> 8));
+        hwspi._spi->write((uint8_t)w);
 #endif
     } else if(connection == TFT_SOFT_SPI) {
         for(uint8_t bit=0; bit<16; bit++) {
@@ -1969,10 +1670,10 @@ void Adafruit_SPITFT::SPI_WRITE32(uint32_t l) {
 #elif defined(ESP8266) || defined(ESP32)
         hwspi._spi->write32(l);
 #else
-        hwspi._spi->transfer(l >> 24);
-        hwspi._spi->transfer(l >> 16);
-        hwspi._spi->transfer(l >> 8);
-        hwspi._spi->transfer(l);
+        hwspi._spi->write((uint8_t)(l >> 24));
+        hwspi._spi->write((uint8_t)(l >> 16));
+        hwspi._spi->write((uint8_t)(l >> 8));
+        hwspi._spi->write((uint8_t)l);
 #endif
     } else if(connection == TFT_SOFT_SPI) {
         for(uint8_t bit=0; bit<32; bit++) {

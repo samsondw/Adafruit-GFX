@@ -33,34 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "Adafruit_GFX.h"
 #include "glcdfont.c"
-#ifdef __AVR__
-  #include <avr/pgmspace.h>
-#elif defined(ESP8266) || defined(ESP32)
-  #include <pgmspace.h>
-#endif
-
-// Many (but maybe not all) non-AVR board installs define macros
-// for compatibility with existing PROGMEM-reading AVR code.
-// Do our own checks and defines here for good measure...
-
-#ifndef pgm_read_byte
- #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
-#endif
-#ifndef pgm_read_word
- #define pgm_read_word(addr) (*(const unsigned short *)(addr))
-#endif
-#ifndef pgm_read_dword
- #define pgm_read_dword(addr) (*(const unsigned long *)(addr))
-#endif
-
-// Pointers are a peculiar case...typically 16-bit on AVR boards,
-// 32 bits elsewhere.  Try to accommodate both...
-
-#if !defined(__INT_MAX__) || (__INT_MAX__ > 0xFFFF)
- #define pgm_read_pointer(addr) ((void *)pgm_read_dword(addr))
-#else
- #define pgm_read_pointer(addr) ((void *)pgm_read_word(addr))
-#endif
 
 #ifndef min
 #define min(a,b) (((a) < (b)) ? (a) : (b))
@@ -875,7 +847,7 @@ void Adafruit_GFX::drawGrayscaleBitmap(int16_t x, int16_t y,
             if(i & 7) byte <<= 1;
             else      byte   = pgm_read_byte(&mask[j * bw + i / 8]);
             if(byte & 0x80) {
-                writePixel(x+i, y, (uint8_t)pgm_read_byte(&bitmap[j * w + i]));
+                writePixel(x+i, y, (uint16_t)pgm_read_byte(&bitmap[j * w + i]));
             }
         }
     }
@@ -1179,6 +1151,22 @@ size_t Adafruit_GFX::write(uint8_t c) {
     return 1;
 }
 
+int Adafruit_GFX::_putc(int value)
+{
+    write((uint8_t)value);
+    return value;
+}
+
+int Adafruit_GFX::_getc()
+{
+    return -1;
+}
+
+void Adafruit_GFX::print(char *str) 
+{ 
+    printf(str); 
+}
+ 
 /**************************************************************************/
 /*!
     @brief  Set text cursor location

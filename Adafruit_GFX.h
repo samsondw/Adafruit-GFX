@@ -4,8 +4,37 @@
 #include "Arduino.h"
 #include "gfxfont.h"
 
+#ifdef __AVR__
+  #include <avr/pgmspace.h>
+#elif defined(ESP8266) || defined(ESP32)
+  #include <pgmspace.h>
+#endif
+
+// Many (but maybe not all) non-AVR board installs define macros
+// for compatibility with existing PROGMEM-reading AVR code.
+// Do our own checks and defines here for good measure...
+
+#ifndef pgm_read_byte
+ #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
+#endif
+#ifndef pgm_read_word
+ #define pgm_read_word(addr) (*(const unsigned short *)(addr))
+#endif
+#ifndef pgm_read_dword
+ #define pgm_read_dword(addr) (*(const unsigned long *)(addr))
+#endif
+
+// Pointers are a peculiar case...typically 16-bit on AVR boards,
+// 32 bits elsewhere.  Try to accommodate both...
+
+#if !defined(__INT_MAX__) || (__INT_MAX__ > 0xFFFF)
+ #define pgm_read_pointer(addr) ((void *)pgm_read_dword(addr))
+#else
+ #define pgm_read_pointer(addr) ((void *)pgm_read_word(addr))
+#endif
+
 /// A generic graphics superclass that can handle all sorts of drawing. At a minimum you can subclass and provide drawPixel(). At a maximum you can do a ton of overriding to optimize. Used for any/all Adafruit displays!
-class Adafruit_GFX : public Print {
+class Adafruit_GFX : public Stream {
 
  public:
 
@@ -100,7 +129,10 @@ class Adafruit_GFX : public Print {
     getTextBounds(const char *string, int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h),
     getTextBounds(const String &str, int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h);
 
-  virtual size_t write(uint8_t);
+  virtual size_t   write(uint8_t);
+  int _putc(int value);
+  int _getc();
+  void print(char *str);
 
   int16_t height(void) const;
   int16_t width(void) const;
