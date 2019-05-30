@@ -922,7 +922,6 @@ void Adafruit_SPITFT::drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[], 
     uint16_t bg_color_data = SWAP_BYTES(bg_color);
 
     startWrite();
-    setAddrWindow(x, y, w, h); // Clipped area
     for (int16_t j = 0; j < h; j++, y++)
     {
         for (int16_t i = 0; i < w; i++)
@@ -935,10 +934,11 @@ void Adafruit_SPITFT::drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[], 
             // if (byte & 0x01)
             //     writePixel(x + i, y, fg_color);
             if (byte & 0x01)
-                ((uint16_t *)spi_buffer)[i] = fg_color_data;
+                *(((uint16_t *)spi_buffer) + i) = fg_color_data;
             else
-                ((uint16_t *)spi_buffer)[i] = bg_color_data;
+                *(((uint16_t *)spi_buffer) + i) = bg_color_data;
         }
+        setAddrWindow(x, y, w, 1); // Clipped area
         hwspi._spi->write((char *)spi_buffer, 2 * w, (char *)NULL, 0);
     }
     endWrite();
