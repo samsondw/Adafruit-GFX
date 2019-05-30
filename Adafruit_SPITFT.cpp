@@ -340,8 +340,11 @@ void Adafruit_SPITFT::writePixels(uint16_t *colors, uint32_t len, bool block, bo
         for (int remaining_bytes = 2 * len; remaining_bytes > 0; remaining_bytes -= SPI_BUFFER_SIZE)
         {
             // Fill array of colors
-            for (uint16_t *ptr = (uint16_t *)spi_buffer; (ptr < (uint16_t *)(spi_buffer + SPI_BUFFER_SIZE)) && (i < len); ptr++)
-                *ptr = colors[i++];
+            for (uint8_t *ptr = (uint8_t *)spi_buffer; (ptr < (uint8_t *)(spi_buffer + SPI_BUFFER_SIZE)) && (i < len); ptr++)
+            {
+                *ptr++ = highByte(colors[i]);
+                *ptr = lowByte(colors[i++]);
+            }
             // Write array of bytes to SPI
             hwspi._spi->write((char *)spi_buffer, std::min(remaining_bytes, SPI_BUFFER_SIZE), (char *)NULL, 0);
         }
@@ -397,8 +400,9 @@ void Adafruit_SPITFT::writeColor(uint16_t color, uint32_t len)
         }
         else // otherwise, loop through buffer setting pairs of bytes
         {
+            uint16_t data = SWAP_BYTES(color);
             for (uint16_t *ptr = (uint16_t *)spi_buffer; ptr < (uint16_t *)(spi_buffer + SPI_BUFFER_SIZE); ptr++)
-                *ptr = color;
+                *ptr = data;
         }
         // Write array of bytes to SPI
         for (int remaining_bytes = 2 * len; remaining_bytes > 0; remaining_bytes -= SPI_BUFFER_SIZE)
@@ -1113,8 +1117,9 @@ void Adafruit_SPITFT::SPI_WRITE16(uint16_t w)
 {
     if (connection == TFT_HARD_SPI)
     {
+        uint8_t data[] = {(uint8_t)(w >> 8), (uint8_t)w};
         // Write data
-        hwspi._spi->write((char *)&w, sizeof(w), (char *)NULL, 0);
+        hwspi._spi->write((char *)data, sizeof(data), (char *)NULL, 0);
         /*
         // Write hi byte
         hwspi._spi->write(highByte(w));
@@ -1157,8 +1162,9 @@ void Adafruit_SPITFT::SPI_WRITE32(uint32_t l)
 {
     if (connection == TFT_HARD_SPI)
     {
+        uint8_t data[] = {(uint8_t)(l >> 24), (uint8_t)(l >> 16), (uint8_t)(l >> 8), (uint8_t)l};
         // Write data
-        hwspi._spi->write((char *)&l, sizeof(l), (char *)NULL, 0);
+        hwspi._spi->write((char *)data, sizeof(data), (char *)NULL, 0);
         /*
         // Write out 4 bytes of data
         hwspi._spi->write((uint8_t)(l >> 24));
