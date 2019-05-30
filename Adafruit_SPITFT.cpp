@@ -390,8 +390,6 @@ void Adafruit_SPITFT::writeColor(uint16_t color, uint32_t len)
 
     if (connection == TFT_HARD_SPI)
     {
-        /*
-        */
         // Fill array of colors
         uint8_t hi = highByte(color), lo = lowByte(color);
         if (hi == lo) // if hi byte equals low byte, set all bytes using memset
@@ -893,6 +891,55 @@ void Adafruit_SPITFT::drawRGBBitmap(int16_t x, int16_t y, uint16_t *pcolors, int
     {                            // For each (clipped) scanline...
         writePixels(pcolors, w); // Push one (clipped) row
         pcolors += saveW;        // Advance pointer by one full (unclipped) line
+    }
+    endWrite();
+}
+
+/**************************************************************************/
+/*!
+   @brief      Draw PROGMEM-resident XBitMap Files (*.xbm), exported from GIMP. 
+   Usage: Export from GIMP to *.xbm, rename *.xbm to *.c and open in editor.
+   C Array can be directly used with this function.
+   There is no RAM-resident version of this function; if generating bitmaps
+   in RAM, use the format defined by drawBitmap() and call that instead.
+    @param    x   Top left corner x coordinate
+    @param    y   Top left corner y coordinate
+    @param    bitmap  byte array with monochrome bitmap
+    @param    w   Width of bitmap in pixels
+    @param    h   Hieght of bitmap in pixels
+    @param    color 16-bit 5-6-5 Color to draw pixels with
+*/
+/**************************************************************************/
+void Adafruit_SPITFT::drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w, int16_t h, uint16_t fg_color, uint16_t bg_color)
+{
+    int16_t byteWidth = (w + 7) / 8; // Bitmap scanline pad = whole byte
+    uint8_t byte = 0;
+
+    // Nearly identical to drawBitmap(), only the bit order
+    // is reversed here (left-to-right = LSB to MSB):
+
+    uint16_t fg_color_data = SWAP_BYTES(fg_color);
+    uint16_t bg_color_data = SWAP_BYTES(bg_color);
+
+    startWrite();
+    setAddrWindow(x, y, w, h); // Clipped area
+    for (int16_t j = 0; j < h; j++, y++)
+    {
+        for (int16_t i = 0; i < w; i++)
+        {
+            if (i & 7)
+                byte >>= 1;
+            else
+                byte = pgm_read_byte(&bitmap[j * byteWidth + i / 8]);
+
+            // if (byte & 0x01)
+            //     writePixel(x + i, y, fg_color);
+            if (byte & 0x01)
+                ((uint16_t *)spi_buffer)[i] = fg_color_data;
+            else
+                ((uint16_t *)spi_buffer)[i] = bg_color_data;
+        }
+        hwspi._spi->write((char *)spi_buffer, 2 * w, (char *)NULL, 0);
     }
     endWrite();
 }
