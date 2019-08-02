@@ -810,7 +810,7 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y, uint8_t *bitmap, int16_t w, 
 
 /**************************************************************************/
 /*!
-   @brief      Draw PROGMEM-resident XBitMap Files (*.xbm), exported from GIMP. 
+   @brief      Draw PROGMEM-resident XBitMap Files (*.xbm), exported from GIMP.
    Usage: Export from GIMP to *.xbm, rename *.xbm to *.c and open in editor.
    C Array can be directly used with this function.
    There is no RAM-resident version of this function; if generating bitmaps
@@ -850,7 +850,7 @@ void Adafruit_GFX::drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int
 
 /**************************************************************************/
 /*!
-   @brief   Draw a PROGMEM-resident 8-bit image (grayscale) at the specified (x,y) pos.  
+   @brief   Draw a PROGMEM-resident 8-bit image (grayscale) at the specified (x,y) pos.
    Specifically for 8-bit display devices such as IS31FL3731; no color reduction/expansion is performed.
     @param    x   Top left corner x coordinate
     @param    y   Top left corner y coordinate
@@ -874,7 +874,7 @@ void Adafruit_GFX::drawGrayscaleBitmap(int16_t x, int16_t y, const uint8_t bitma
 
 /**************************************************************************/
 /*!
-   @brief   Draw a RAM-resident 8-bit image (grayscale) at the specified (x,y) pos.  
+   @brief   Draw a RAM-resident 8-bit image (grayscale) at the specified (x,y) pos.
    Specifically for 8-bit display devices such as IS31FL3731; no color reduction/expansion is performed.
     @param    x   Top left corner x coordinate
     @param    y   Top left corner y coordinate
@@ -970,7 +970,7 @@ void Adafruit_GFX::drawGrayscaleBitmap(int16_t x, int16_t y, uint8_t *bitmap, ui
 
 /**************************************************************************/
 /*!
-   @brief   Draw a PROGMEM-resident 16-bit image (RGB 5/6/5) at the specified (x,y) position.  
+   @brief   Draw a PROGMEM-resident 16-bit image (RGB 5/6/5) at the specified (x,y) position.
    For 16-bit display devices; no color reduction performed.
     @param    x   Top left corner x coordinate
     @param    y   Top left corner y coordinate
@@ -994,7 +994,7 @@ void Adafruit_GFX::drawRGBBitmap(int16_t x, int16_t y, const uint16_t bitmap[], 
 
 /**************************************************************************/
 /*!
-   @brief   Draw a RAM-resident 16-bit image (RGB 5/6/5) at the specified (x,y) position.  
+   @brief   Draw a RAM-resident 16-bit image (RGB 5/6/5) at the specified (x,y) position.
    For 16-bit display devices; no color reduction performed.
     @param    x   Top left corner x coordinate
     @param    y   Top left corner y coordinate

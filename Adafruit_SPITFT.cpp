@@ -862,8 +862,8 @@ void Adafruit_SPITFT::drawRGBBitmap(int16_t x, int16_t y, uint16_t *pcolors, int
     if ((x >= _width) ||            // Off-edge right
         (y >= _height) ||           // " top
         ((x2 = (x + w - 1)) < 0) || // " left
-        ((y2 = (y + h - 1)) < 0))
-        return; // " bottom
+        ((y2 = (y + h - 1)) < 0))   // " bottom
+        return;
 
     int16_t bx1 = 0, by1 = 0, // Clipped top-left within bitmap
         saveW = w;            // Save original bitmap width value
@@ -887,17 +887,26 @@ void Adafruit_SPITFT::drawRGBBitmap(int16_t x, int16_t y, uint16_t *pcolors, int
     pcolors += by1 * saveW + bx1; // Offset bitmap ptr to clipped top-left
     startWrite();
     setAddrWindow(x, y, w, h); // Clipped area
-    while (h--)
-    {                            // For each (clipped) scanline...
-        writePixels(pcolors, w); // Push one (clipped) row
-        pcolors += saveW;        // Advance pointer by one full (unclipped) line
+    if (saveW == w)
+    {
+        // Draw all-at-once
+        writePixels(pcolors, saveW * h); // Push all rows
+    }
+    else
+    {
+        // Draw line-by-line
+        while (h--)
+        {                            // For each (clipped) scanline...
+            writePixels(pcolors, w); // Push one (clipped) row
+            pcolors += saveW;        // Advance pointer by one full (unclipped) line
+        }
     }
     endWrite();
 }
 
 /**************************************************************************/
 /*!
-   @brief      Draw PROGMEM-resident XBitMap Files (*.xbm), exported from GIMP. 
+   @brief      Draw PROGMEM-resident XBitMap Files (*.xbm), exported from GIMP.
    Usage: Export from GIMP to *.xbm, rename *.xbm to *.c and open in editor.
    C Array can be directly used with this function.
    There is no RAM-resident version of this function; if generating bitmaps
@@ -922,7 +931,6 @@ void Adafruit_SPITFT::drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[], 
     uint16_t bg_color_data = SWAP_BYTES(bg_color);
 
     startWrite();
-    setAddrWindow(x, y, w, h); // Clipped area
     for (int16_t j = 0; j < h; j++, y++)
     {
         for (int16_t i = 0; i < w; i++)
@@ -935,10 +943,11 @@ void Adafruit_SPITFT::drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[], 
             // if (byte & 0x01)
             //     writePixel(x + i, y, fg_color);
             if (byte & 0x01)
-                ((uint16_t *)spi_buffer)[i] = fg_color_data;
+                *(((uint16_t *)spi_buffer) + i) = fg_color_data;
             else
-                ((uint16_t *)spi_buffer)[i] = bg_color_data;
+                *(((uint16_t *)spi_buffer) + i) = bg_color_data;
         }
+        setAddrWindow(x, y, w, 1); // Clipped area
         hwspi._spi->write((char *)spi_buffer, 2 * w, (char *)NULL, 0);
     }
     endWrite();
@@ -1072,7 +1081,7 @@ void Adafruit_SPITFT::writeCommand(uint8_t cmd)
              with a now-not-accurate name that's being maintained for
              compatibility with outside code. This function is used even if
              display connection is parallel.
-    @return  Unsigned 8-bit value read 
+    @return  Unsigned 8-bit value read
 */
 uint8_t Adafruit_SPITFT::SPI_READ8(void)
 {
@@ -1157,7 +1166,7 @@ inline bool Adafruit_SPITFT::SPI_MISO_READ(void)
             transaction and data/command selection must have been
             previously set -- this ONLY issues the word. Despite the name,
             this function is used even if display connection is parallel;
-            name was maintaned for backward compatibility. 
+            name was maintaned for backward compatibility.
     @param  w  16-bit value to write.
 */
 void Adafruit_SPITFT::SPI_WRITE16(uint16_t w)
@@ -1202,7 +1211,7 @@ void Adafruit_SPITFT::SPI_WRITE16(uint16_t w)
             transaction and data/command selection must have been
             previously set -- this ONLY issues the longword. Despite the
             name, this function is used even if display connection is
-            parallel; name was maintaned for backward compatibility. 
+            parallel; name was maintaned for backward compatibility.
     @param  l  32-bit value to write.
 */
 void Adafruit_SPITFT::SPI_WRITE32(uint32_t l)

@@ -192,7 +192,7 @@ public:
 
 	uint16_t SWAP_BYTES(uint16_t x)
 	{
-		return (lowByte(x) << 8) | (highByte(x) >> 8);
+		return ((x & 0x00ff) << 8) | (((x & 0x00ff00) >> 8) & 0x00ff);
 	}
 
 	/*!
